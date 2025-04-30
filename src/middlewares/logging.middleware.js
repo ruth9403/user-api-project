@@ -6,7 +6,7 @@ module.exports = async function LoggingMiddleware(req, res, next) {
     const newBody = await sanitize.sanitizeBody(req.body);
     console.log(
       `[${new Date(Date.now()).toISOString()}] ${req.method} ${
-        req.path
+        req.originalUrl
       } body: ${JSON.stringify(newBody) || {}} params: ${JSON.stringify(
         req.params
       )}`

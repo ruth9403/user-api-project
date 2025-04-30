@@ -30,8 +30,8 @@ VALUES (
 
 --Create Table friendship 
 CREATE TABLE IF NOT EXISTS friendship (
-  user_id1 INTEGER NOT NULL,
-  user_id2 INTEGER NOT NULL,
+  user_id1 TEXT NOT NULL,
+  user_id2 TEXT NOT NULL,
   PRIMARY KEY (user_id1, user_id2),
   FOREIGN KEY (user_id1) REFERENCES user(id) ON DELETE CASCADE,
   FOREIGN KEY (user_id2) REFERENCES user(id) ON DELETE CASCADE,

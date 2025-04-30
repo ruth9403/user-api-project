@@ -7,13 +7,13 @@ const { AppError } = require('../utils/error')
 module.exports = {
   helloWorld: (req, res) => res.send("Hello world!"),
 
-  getAllUsers: async (req, res) => {
+  getAllUsers: async (req, res, next) => {
     try {
       const users = await userService.getAllUsers();
       // Header to indicate the total count
       res.set("X-Total-Count", users.length).json(users);
-    } catch (error) {
-      res.status(500).json({ error: error.message });
+    } catch (e) {
+      next(e);
     }
   },
 
@@ -47,9 +47,6 @@ module.exports = {
 
       // Checking if coordinates are valid
       const hemisphere = await isSouthOrNorth(latitude, longitude);
-      if (!hemisphere) {
-        return next(new AppError('Bad request, coordinates are invalid', 400));
-      }
 
       // Hashing password
       const hashedPassword = await bcrypt.hash(password, 10);
@@ -98,9 +95,6 @@ module.exports = {
       const newLat = preparedUpdates.latitude ?? user.latitude;
       const newLong = preparedUpdates.longitude ?? user.longitude;
       const newHemisphere = await isSouthOrNorth(newLat, newLong);
-      if (!newHemisphere) {
-        return next(new AppError('Bad request, coordinates are invalid', 400));
-      }
 
       const result = await userService.updateUser(id, preparedUpdates, source, newHemisphere);
       res.json(result);
@@ -113,12 +107,12 @@ module.exports = {
     }
   },
 
-  deleteUser: async (req, res) => {
+  deleteUser: async (req, res, next) => {
     try {
       await userService.deleteUser(req.params.id);
       res.json({ message: "User deleted successfully" });
-    } catch (error) {
-      res.status(500).json({ error: error.message });
+    } catch (e) {
+      next(e);
     }
   },
 };

@@ -1,3 +1,6 @@
+
+const { AppError } = require('../utils/error')
+
 /**
  * Gets geolocation hemisphere
  * @param {number} latitude 
@@ -12,7 +15,7 @@ const isSouthOrNorth = (latitude, longitude) => {
       } else if (latitude < 0 && latitude >= -90 && longitude >= -180 && longitude <= 180){
         resolve('S');
       } else {
-        reject(new Error('Bad values'));
+        reject(new AppError('Bad request, coordinates are invalid', 400));
       }
     }, 700);
   });
