@@ -1,32 +1,29 @@
 
-## Getting Started - Docker
-**Clone the Repository**:
+## Initializar - Docker
+**Clonar el repo**:
    ```bash
    git clone <your-repo-url>
    cd <your-repo-directory>
    ```
-**Build and Run with Docker Compose**:
+**Build and Run Docker Compose**:
    ```bash
-   docker-compose up -d --build
+   docker-compose up -d
    ```
-   - This builds the image (`user-node-test:latest`) and starts the container.
-   - The application will be available at `http://localhost:3000`.
+   - Esto crea una imagen (`user-node-test:latest`) and e inicializa el container.
+   - La aplicaciòn estarà disponible en el puerto `http://localhost:3000`.
 
-**Stop the Application**:
+**Detener la app**:
    ```bash
-   docker-compose down
+   docker-compose stop
    ```
-   - Add `-v` to remove the volume (`db-data`) if you want to reset the database:
-     ```bash
-     docker-compose down -v
-     ```
+
 ## API Endpoints
 
-- `GET /users`: Retrieve all users.
-- `GET /users/:id`: Retrieve a user by ID.
-- `POST /users`: Create a new user.
-- `PUT /users/:id`: Update a user.
-- `DELETE /users/:id`: Delete a user.
+- `GET /users`: Lista todos los users.
+- `GET /users/:id`: Obtiene un usuario por su id.
+- `POST /users`: Crea un nuevo usuario.
+- `PUT /users/:id`: Actualiza un usuario existente.
+- `DELETE /users/:id`: Elimina un usuario.
 
 ## Criterios y Asumsiones
 - Las querys planteadas para listar los amigos de un usuario `?:userId` se realizan crearon bajo el supuesto de que existe una tabla  `friendship` con la siguiente estructura y restriciones, _en este proyecto aún no se encuentran implementadas, solo se conceptualiza para el futuro desarrollo_

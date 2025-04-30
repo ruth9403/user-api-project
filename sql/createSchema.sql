@@ -16,18 +16,6 @@ CREATE TABLE if not exists user (
   browser_language TEXT
 );
 
---Insert first user example
-INSERT INTO user (id, username, email, password, latitude, longitude, browser_language)
-VALUES (
-  '550e8400-e29b-41d4-a716-446655440000',
-  'pepito_perez',
-  'pepito@example.com',
-  'hashed_password',
-  4.570868,
-  -74.297333,
-  'es-CO'
-);
-
 --Create Table friendship 
 CREATE TABLE IF NOT EXISTS friendship (
   user_id1 TEXT NOT NULL,
