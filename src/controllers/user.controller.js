@@ -109,8 +109,11 @@ module.exports = {
 
   deleteUser: async (req, res, next) => {
     try {
-      await userService.deleteUser(req.params.id);
-      res.json({ message: "User deleted successfully" });
+      // Searching for user
+      const { user, source } = await userService.searchForUser(req.params.id);
+      if (!user) return next(new AppError('User not found', 404));
+      await userService.deleteUser(req.params.id, source);
+      res.json({ id: req.params.id, message: "User deleted successfully" });
     } catch (e) {
       next(e);
     }

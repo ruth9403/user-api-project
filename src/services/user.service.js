@@ -70,10 +70,13 @@ module.exports = {
     };
   },
 
-  async deleteUser(id) {
-    const deletedFromDb = await dbService.deleteUser(id);
-    if (deletedFromDb) return;
-
-    await apiService.deleteUser(id);
+  async deleteUser(id, source) {
+    if (source === "db") {
+      const deletedDb = await dbService.deleteUser(id);
+      return deletedDb;
+    }else {
+      const deletedAPI = await apiService.deleteUser(id);
+      return deletedAPI
+    }
   },
 };

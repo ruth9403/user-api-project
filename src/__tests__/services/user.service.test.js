@@ -150,16 +150,21 @@ describe("userService.updateUser", () => {
 });
 
 describe("userService.deleteUser", () => {
-  it("should delete user from DB if found", async () => {
+  it("should delete user from DB if source is 'db'", async () => {
     dbService.deleteUser.mockResolvedValue(true);
-    await userService.deleteUser(1);
+
+    await userService.deleteUser(1, "db");
+
     expect(dbService.deleteUser).toHaveBeenCalledWith(1);
     expect(apiService.deleteUser).not.toHaveBeenCalled();
   });
 
-  it("should delete user from API if not found in DB", async () => {
-    dbService.deleteUser.mockResolvedValue(false);
-    await userService.deleteUser(2);
+  it("should delete user from API if source is not 'db'", async () => {
+    apiService.deleteUser.mockResolvedValue(true);
+
+    await userService.deleteUser(2, "api");
+
     expect(apiService.deleteUser).toHaveBeenCalledWith(2);
+    expect(dbService.deleteUser).not.toHaveBeenCalled();
   });
 });
