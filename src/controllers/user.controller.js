@@ -2,6 +2,7 @@ const userService = require("../services/user.service");
 const { v4: uuidv4 } = require("uuid");
 const { isSouthOrNorth } = require("../utils/geoLocation");
 const bcrypt = require("bcrypt");
+const { AppError } = require('../utils/error')
 
 module.exports = {
   helloWorld: (req, res) => res.send("Hello world!"),
@@ -9,7 +10,6 @@ module.exports = {
   getAllUsers: async (req, res) => {
     try {
       const users = await userService.getAllUsers();
-
       // Header to indicate the total count
       res.set("X-Total-Count", users.length).json(users);
     } catch (error) {
@@ -17,18 +17,17 @@ module.exports = {
     }
   },
 
-  getUserById: async (req, res) => {
+  getUserById: async (req, res, next) => {
     try {
       const user = await userService.getUserById(req.params.id);
-      user
-        ? res.json(user)
-        : res.status(404).json({ message: "User not found" });
-    } catch (error) {
-      res.status(500).json({ error: error.message });
+      if (!user) return next(new AppError('User not found', 404));
+      res.json(user);
+    } catch (e) {
+      next(e);
     }
   },
 
-  createUser: async (req, res) => {
+  createUser: async (req, res, next) => {
     try {
       const {
         body: {
@@ -43,14 +42,14 @@ module.exports = {
 
       // Validating required fields
       if (!username || !email || !password || !latitude || !longitude) {
-        return res.status(400).json({
-          message:
-            "Bad request, one or more of the following fields are missing: username, email, password, latitude, longitude",
-        });
+        return next(new AppError('Bad request, one or more of the following fields are missing: username, email, password, latitude, longitude', 400))
       }
 
       // Checking if coordinates are valid
       const hemisphere = await isSouthOrNorth(latitude, longitude);
+      if (!hemisphere) {
+        return next(new AppError('Bad request, coordinates are invalid', 400));
+      }
 
       // Hashing password
       const hashedPassword = await bcrypt.hash(password, 10);
@@ -70,18 +69,14 @@ module.exports = {
       res.status(201).json({id, username, email});
     } catch (e) {
       if (e.message.includes("UNIQUE constraint failed")) {
-        res.status(409).json({ error: "Username or email already exists" });
-      } else if (e.message.includes("Bad values")) {
-        res.status(400).json({ error: "Coordinates are invalid" });
-      } else {
-        res
-          .status(500)
-          .json({ error: "Internal server error", details: e.message });
+        return next(new AppError("Username or email already exists", 409));
       }
+
+      next(e);
     }
   },
 
-  updateUser: async (req, res) => {
+  updateUser: async (req, res, next) => {
     try {
       const {
         params: { id },
@@ -91,9 +86,7 @@ module.exports = {
       // Searching for user
       const { user, source } = await userService.searchForUser(id);
 
-      if (!user) {
-        res.status(404).json({ message: "User not found" });
-      }
+      if (!user) return next(new AppError('User not found', 404));
       
       // Hashing new password if any
       const preparedUpdates = { ...body };
@@ -105,21 +98,18 @@ module.exports = {
       const newLat = preparedUpdates.latitude ?? user.latitude;
       const newLong = preparedUpdates.longitude ?? user.longitude;
       const newHemisphere = await isSouthOrNorth(newLat, newLong);
+      if (!newHemisphere) {
+        return next(new AppError('Bad request, coordinates are invalid', 400));
+      }
 
-      const needsMigration =
-      (source === "db" && newHemisphere === "S") ||
-      (source === "api" && newHemisphere === "N");
-
-      const result = await userService.updateUser(id, preparedUpdates, source, needsMigration);
+      const result = await userService.updateUser(id, preparedUpdates, source, newHemisphere);
       res.json(result);
     } catch (e) {
       if (e.message.includes("UNIQUE constraint failed")) {
-        res.status(409).json({ error: "Username or email already exists" });
-      } else {
-        res
-          .status(500)
-          .json({ error: "Internal server error", details: e.message });
+        return next(new AppError("Username or email already exists", 409));
       }
+
+      next(e)
     }
   },
 

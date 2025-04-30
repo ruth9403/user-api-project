@@ -28,7 +28,6 @@ module.exports = {
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         Object.values(userData)
       );
-      console.log('result', result);
       return result;
     } finally {
       await client.close();

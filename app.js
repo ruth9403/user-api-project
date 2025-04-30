@@ -23,9 +23,13 @@ app.use(function(err, req, res, next) {
   res.locals.message = err.message;
   res.locals.error = req.app.get('env') === 'development' ? err : {};
 
+  const statusCode = err.statusCode || 500;
+
   // render the error page
-  res.status(err.status || 500);
-  res.send('error');
+  res.status(statusCode).json({
+    status: 'error',
+    message: err.message || 'Internal Server Error',
+  });
 });
 
 module.exports = app;

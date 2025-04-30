@@ -3,11 +3,17 @@ const apiService = require("./southernUsersApi.service");
 
 module.exports = {
   async searchForUser(id) {
-    const { user, source } = await Promise.any([
-      dbService.getUserById(id).then((user) => ({ user, source: "db" })),
-      apiService.fetchSingleUser(id).then((user) => ({ user, source: "api" })),
-    ]);
-    return { user, source };
+    const [dbResult, apiResult] = await Promise.allSettled([
+        dbService.getUserById(id).then((user) => ({ user, source: "db" })),
+        apiService.fetchSingleUser(id).then((user) => ({ user, source: "api" })),
+      ]);
+    
+      const validResult = [dbResult, apiResult]
+        .filter((r) => r.status === "fulfilled" && r.value.user)[0];
+    
+      if (!validResult) return { user: undefined };
+    
+      return validResult.value;
   },
 
   async getAllUsers() {
@@ -31,17 +37,22 @@ module.exports = {
       : apiService.insertUser(userData);
   },
 
-  async updateUser(id, userData, source, needsMigration) {
+  async updateUser(id, userData, source, newHemisphere) {
+    const needsMigration =
+      (source === "db" && newHemisphere === "S") ||
+      (source === "api" && newHemisphere === "N");
+
     // Migrating user to correct hemmisphere
     let updatedUser;
+    const migrated = { id, ...userData }
     if (needsMigration) {
       if (newHemisphere === "N") {
         // From API to DB
-        updatedUser = await dbService.createUser(userData);
+        updatedUser = await dbService.createUser(migrated);
         await apiService.deleteUser(id);
       } else {
         // From DB to API
-        updatedUser = await apiService.insertUser(userData);
+        updatedUser = await apiService.insertUser(migrated);
         await dbService.deleteUser(id);
       }
     } else if (source === "db") {
