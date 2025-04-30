@@ -1,34 +1,32 @@
 
-## Descripción
+## Getting Started - Docker
+**Clone the Repository**:
+   ```bash
+   git clone <your-repo-url>
+   cd <your-repo-directory>
+   ```
+**Build and Run with Docker Compose**:
+   ```bash
+   docker-compose up -d --build
+   ```
+   - This builds the image (`user-node-test:latest`) and starts the container.
+   - The application will be available at `http://localhost:3000`.
 
-Este proyecto vacío, con ciertas utilidades, se entrega como material para facilitar el desarollo de la prueba técnica
+**Stop the Application**:
+   ```bash
+   docker-compose down
+   ```
+   - Add `-v` to remove the volume (`db-data`) if you want to reset the database:
+     ```bash
+     docker-compose down -v
+     ```
+## API Endpoints
 
-Corresponde al desarrollador construir la funcionalidad. Para ejecutar el API se puede hacer mediante:
-  ```
-  npm start
-  ```
-
-Como utilidades para agilizar el desarrollo se incluye lo siguiente:
-
-- Una capreta "lib" con un objeto de conexión a SQLite. Aunque el desarrollador tiene la libertad de usar lo que considere en este aspecto.
-
-- En el caso de que se desee utilizar SQLite, existe una carpeta "sql" con un script que ejecuta las queries iniciales para crear el esquema de base de datos, el script ejecutará las sentencias escritas en el fichero createSchema.sql de la misma carpeta. para ejecutarlo sería de la siguiente forma:
-  ```
-  npm run create-db
-  ```
-- Un objeto en la carpeta "services" para realizar peticiones al API externa que procesa usuarios del hemisferio sur
-
-
-## Requisitos
-
-- Uso de Node.js y framework Express.js
-- Uso de base de datos relacional SQL para alojar los datos.
-- Uso de lenguaje SQL (no usar ORM)
-- La programación asíncrona debe realizarse mediante promesas o async/await.
-- Entrada y salida del API en formato JSON
-- Antes de procesar cada petición, se debe imprimir un log con la información correspondiente, método, path y parámetros.
-- Control de errores y excepciones.
-- Buena organización y estilo de código intentando seguir un patrón de diseño en el que la lógica y el modelo de datos sean independientes.
+- `GET /users`: Retrieve all users.
+- `GET /users/:id`: Retrieve a user by ID.
+- `POST /users`: Create a new user.
+- `PUT /users/:id`: Update a user.
+- `DELETE /users/:id`: Delete a user.
 
 ## Criterios y Asumsiones
 - Las querys planteadas para listar los amigos de un usuario `?:userId` se realizan crearon bajo el supuesto de que existe una tabla  `friendship` con la siguiente estructura y restriciones, _en este proyecto aún no se encuentran implementadas, solo se conceptualiza para el futuro desarrollo_
@@ -69,3 +67,33 @@ WHERE user_id1 = ? OR user_id2 = ?; */
 ```
 
 - Por otro lado, se usó la mocked API del archivo `southernUsersApi.service.js` como el servicio externo que simula el crud para lso usuarios del sur, solo se crearon los métodos necesarios, pero básicamente solo simula la demora de un proceso I/O.
+
+## Descripción
+Este proyecto vacío, con ciertas utilidades, se entrega como material para facilitar el desarollo de la prueba técnica
+
+Corresponde al desarrollador construir la funcionalidad. Para ejecutar el API se puede hacer mediante:
+  ```
+  npm start
+  ```
+
+Como utilidades para agilizar el desarrollo se incluye lo siguiente:
+
+- Una capreta "lib" con un objeto de conexión a SQLite. Aunque el desarrollador tiene la libertad de usar lo que considere en este aspecto.
+
+- En el caso de que se desee utilizar SQLite, existe una carpeta "sql" con un script que ejecuta las queries iniciales para crear el esquema de base de datos, el script ejecutará las sentencias escritas en el fichero createSchema.sql de la misma carpeta. para ejecutarlo sería de la siguiente forma:
+  ```
+  npm run create-db
+  ```
+- Un objeto en la carpeta "services" para realizar peticiones al API externa que procesa usuarios del hemisferio sur
+
+
+## Requisitos
+
+- Uso de Node.js y framework Express.js
+- Uso de base de datos relacional SQL para alojar los datos.
+- Uso de lenguaje SQL (no usar ORM)
+- La programación asíncrona debe realizarse mediante promesas o async/await.
+- Entrada y salida del API en formato JSON
+- Antes de procesar cada petición, se debe imprimir un log con la información correspondiente, método, path y parámetros.
+- Control de errores y excepciones.
+- Buena organización y estilo de código intentando seguir un patrón de diseño en el que la lógica y el modelo de datos sean independientes.

@@ -1,0 +1,16 @@
+version: '3.8'
+services:
+  app:
+    build: .
+    image: user-node-test:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - db-data:/usr/src/app
+    environment:
+      - NODE_ENV=production
+      - DB_PATH=/usr/src/app/database.db
+    restart: unless-stopped
+
+volumes:
+  db-data:

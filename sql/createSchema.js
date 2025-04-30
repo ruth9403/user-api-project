@@ -30,8 +30,17 @@ const createSchema = async () => {
   }
 };
 
-createSchema().then(r => {
-  console.log('Finished  OK');
-}).catch(e => {
-  console.log('Finished  KO', e);
-});
+// Execute createSchema only if this script is run directly ( npm run create-db)
+if (require.main === module) {
+  createSchema()
+    .then(() => {
+      console.log('Finished  OK');
+      process.exit(0);
+    })
+    .catch((e) => {
+      console.log('Finished  KO', e);
+      process.exit(1);
+    });
+}
+
+module.exports = createSchema;

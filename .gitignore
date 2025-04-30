@@ -31,3 +31,4 @@ build/
 # SQLite databases
 *.sqlite
 *.sqlite3
+database.db
