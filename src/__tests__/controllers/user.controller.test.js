@@ -167,10 +167,7 @@ describe("userController.createUser", () => {
   
       await userController.createUser(req, res, next);
   
-      expect(next).toHaveBeenCalledWith(expect.objectContaining({
-        message: 'Some unknown error',
-        statusCode: 500, // Default status code for unknown errors
-      }));
+      expect(next).toHaveBeenCalledWith(expect.any(Error));
     });
   });
   

@@ -45,12 +45,13 @@ CREATE TABLE IF NOT EXISTS friendship (
   FOREIGN KEY (user_id2) REFERENCES user(id) ON DELETE CASCADE,
   CONSTRAINT no_self_friendship CHECK (user_id1 != user_id2)
 );
+```
 
  - Usa ambos IDs (user_id1 y user_id2) como clave primaria, dado que serian UUIDs.
- - Relacion 1:N, insertando los UUID correspondientes de los user de manera ordenada desde el endpoint de la app aplicando sort de tal manera que siempre (A,B) se almacene de A<B y no se consideren como distintos registros como (B,A).
+ - Relacion 1:N, insertando los UUID correspondientes de los user de manera ordenada desde el endpoint de la app aplicando sort de tal manera que siempre (A,B) se almacene de `A<B` y no se consideren como distintos registros como (B,A).
  -Posteriormente, se podrìan listar los users utilizando las siguientes querys:
 
-- User del norte
+// User del norte
 ```
 // Query to List friends, ONLY friends from the North (stored in our DB):
 
@@ -59,7 +60,7 @@ FROM friendship f
 JOIN user u ON (u.id = f.user_id2 OR u.id = f.user_id1)
 WHERE (f.user_id1 = ? OR f.user_id2 = ?) AND u.id != ?;
 ```
-- Users del Sur:
+// Users del Sur:
 ```
 --Query to Count friends, ONLY friends from the North (stored in our DB):
 /* SELECT COUNT(*) as friend_total
