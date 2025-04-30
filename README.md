@@ -2,8 +2,7 @@
 ## Initializar - Docker
 **Clonar el repo**:
    ```bash
-   git clone <your-repo-url>
-   cd <your-repo-directory>
+   git clone https://github.com/ruth9403/user-api-project.git
    ```
 **Build and Run Docker Compose**:
    ```bash
