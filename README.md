@@ -9,7 +9,7 @@
    docker-compose up -d
    ```
    - Esto crea una imagen (`user-node-test:latest`) and e inicializa el container.
-   - La aplicaciòn estarà disponible en el puerto `http://localhost:3000`.
+   - La aplicación estará disponible en el puerto `http://localhost:3000`.
 
 **Detener la app**:
    ```bash

@@ -5,6 +5,12 @@ jest.mock("../../services/southernUsersApi.service");
 const userService = require("../../services/user.service");
 const dbService = require("../../services/db.service");
 const apiService = require("../../services/southernUsersApi.service");
+const {
+  DATA_SOURCE_DB,
+  DATA_SOURCE_API,
+  HEMISPHERE_NORTH,
+  HEMISPHERE_SOUTH,
+} = require("../../config/constants");
 
 afterEach(() => {
   jest.clearAllMocks();
@@ -34,7 +40,7 @@ describe("userService.searchForUser", () => {
     const result = await userService.searchForUser(124);
     expect(result).toEqual({
       user: mockUser,
-      source: "db",
+      source: DATA_SOURCE_DB,
     });
   });
 
@@ -45,7 +51,7 @@ describe("userService.searchForUser", () => {
     const result = await userService.searchForUser(124);
     expect(result).toEqual({
       user: mockUserSouth,
-      source: "api",
+      source: DATA_SOURCE_API,
     });
   });
 
@@ -83,7 +89,7 @@ describe("userService.createUser", () => {
   it("should call dbService.createUser for northern hemisphere", async () => {
     dbService.createUser.mockResolvedValue(mockUser);
 
-    const result = await userService.createUser(mockUser, "N");
+    const result = await userService.createUser(mockUser, HEMISPHERE_NORTH);
 
     expect(dbService.createUser).toHaveBeenCalledWith(mockUser);
     expect(apiService.insertUser).not.toHaveBeenCalled();
@@ -93,7 +99,7 @@ describe("userService.createUser", () => {
   it("should call apiService.insertUser for southern hemisphere", async () => {
     apiService.insertUser.mockResolvedValue(mockUserSouth);
 
-    const result = await userService.createUser(mockUserSouth, "S");
+    const result = await userService.createUser(mockUserSouth, HEMISPHERE_SOUTH);
 
     expect(apiService.insertUser).toHaveBeenCalledWith(mockUserSouth);
     expect(dbService.createUser).not.toHaveBeenCalled();
@@ -112,7 +118,7 @@ describe("userService.updateUser", () => {
     dbService.createUser.mockResolvedValue({ ...userData, id });
     apiService.deleteUser.mockResolvedValue();
 
-    const result = await userService.updateUser(id, userData, "api", "N");
+    const result = await userService.updateUser(id, userData, DATA_SOURCE_API, HEMISPHERE_NORTH);
 
     expect(dbService.createUser).toHaveBeenCalledWith({ id, ...userData });
     expect(apiService.deleteUser).toHaveBeenCalledWith(id);
@@ -123,7 +129,7 @@ describe("userService.updateUser", () => {
     apiService.insertUser.mockResolvedValue({ ...userData, id });
     dbService.deleteUser.mockResolvedValue();
 
-    const result = await userService.updateUser(id, userData, "db", "S");
+    const result = await userService.updateUser(id, userData, DATA_SOURCE_DB, HEMISPHERE_SOUTH);
 
     expect(apiService.insertUser).toHaveBeenCalledWith({ id, ...userData });
     expect(dbService.deleteUser).toHaveBeenCalledWith(id);
@@ -133,7 +139,7 @@ describe("userService.updateUser", () => {
   it("should update user in DB when staying in North", async () => {
     dbService.updateUser.mockResolvedValue({ ...userData, id });
 
-    const result = await userService.updateUser(id, userData, "db", "N");
+    const result = await userService.updateUser(id, userData, DATA_SOURCE_DB, HEMISPHERE_NORTH);
 
     expect(dbService.updateUser).toHaveBeenCalledWith(id, userData);
     expect(result).toEqual({ id, ...userData });
@@ -142,7 +148,7 @@ describe("userService.updateUser", () => {
   it("should update user via API when staying in South", async () => {
     apiService.updateUser.mockResolvedValue({ ...userData, id });
 
-    const result = await userService.updateUser(id, userData, "api", "S");
+    const result = await userService.updateUser(id, userData, DATA_SOURCE_API, HEMISPHERE_SOUTH);
 
     expect(apiService.updateUser).toHaveBeenCalledWith(id, userData);
     expect(result).toEqual({ id, ...userData });
@@ -162,7 +168,7 @@ describe("userService.deleteUser", () => {
   it("should delete user from API if source is not 'db'", async () => {
     apiService.deleteUser.mockResolvedValue(true);
 
-    await userService.deleteUser(2, "api");
+    await userService.deleteUser(2, DATA_SOURCE_API);
 
     expect(apiService.deleteUser).toHaveBeenCalledWith(2);
     expect(dbService.deleteUser).not.toHaveBeenCalled();

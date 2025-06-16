@@ -1,11 +1,17 @@
 const dbService = require("./db.service");
 const apiService = require("./southernUsersApi.service");
+const {
+  HEMISPHERE_NORTH,
+  HEMISPHERE_SOUTH,
+  DATA_SOURCE_DB,
+  DATA_SOURCE_API,
+} = require("../config/constants");
 
 module.exports = {
   async searchForUser(id) {
     const [dbResult, apiResult] = await Promise.allSettled([
-        dbService.getUserById(id).then((user) => ({ user, source: "db" })),
-        apiService.fetchSingleUser(id).then((user) => ({ user, source: "api" })),
+        dbService.getUserById(id).then((user) => ({ user, source: DATA_SOURCE_DB })),
+        apiService.fetchSingleUser(id).then((user) => ({ user, source: DATA_SOURCE_API })),
       ]);
     
       const validResult = [dbResult, apiResult]
@@ -32,21 +38,21 @@ module.exports = {
   },
 
   async createUser(userData, hemisphere) {
-    return hemisphere === "N"
+    return hemisphere === HEMISPHERE_NORTH
       ? dbService.createUser(userData)
       : apiService.insertUser(userData);
   },
 
   async updateUser(id, userData, source, newHemisphere) {
     const needsMigration =
-      (source === "db" && newHemisphere === "S") ||
-      (source === "api" && newHemisphere === "N");
+      (source === DATA_SOURCE_DB && newHemisphere === HEMISPHERE_SOUTH) ||
+      (source === DATA_SOURCE_API && newHemisphere === HEMISPHERE_NORTH);
 
     // Migrating user to correct hemmisphere
     let updatedUser;
     const migrated = { id, ...userData }
     if (needsMigration) {
-      if (newHemisphere === "N") {
+      if (newHemisphere === HEMISPHERE_NORTH) {
         // From API to DB
         updatedUser = await dbService.createUser(migrated);
         await apiService.deleteUser(id);
@@ -55,7 +61,7 @@ module.exports = {
         updatedUser = await apiService.insertUser(migrated);
         await dbService.deleteUser(id);
       }
-    } else if (source === "db") {
+    } else if (source === DATA_SOURCE_DB) {
       // Continues in North, updating DB
       updatedUser = await dbService.updateUser(id, userData);
     } else {
@@ -71,7 +77,7 @@ module.exports = {
   },
 
   async deleteUser(id, source) {
-    if (source === "db") {
+    if (source === DATA_SOURCE_DB) {
       const deletedDb = await dbService.deleteUser(id);
       return deletedDb;
     }else {
