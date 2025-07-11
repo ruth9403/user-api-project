@@ -1,4 +1,4 @@
-const mockUsers = [
+export const mockUsers = [
   {
     id: "20bf5474-5b97-4dd2-afe4-e375bfd58cd0",
     username: "ausie",
@@ -9,5 +9,3 @@ const mockUsers = [
     browser_language: "en-AU",
   },
 ];
-
-module.exports = { mockUsers };

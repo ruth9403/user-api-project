@@ -1,9 +1,10 @@
-const sanitize = require('../utils/sanitize');
+import { Sanitize } from "../utils/sanitize.js";
 
-module.exports = async function LoggingMiddleware(req, res, next) {
+export const LoggingMiddleware = async (req, _, next) => {
+
   try {
     // Sanitize request body to exclude sensitive fields
-    const newBody = await sanitize.sanitizeBody(req.body);
+    const newBody = await Sanitize.sanitizeObject(req.body);
     console.log(
       `[${new Date(Date.now()).toISOString()}] ${req.method} ${
         req.originalUrl

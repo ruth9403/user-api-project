@@ -1,7 +1,4 @@
-// config/constants.js
-module.exports = {
-  DATA_SOURCE_DB: 'db',
-  DATA_SOURCE_API: 'api',
-  HEMISPHERE_NORTH: 'N',
-  HEMISPHERE_SOUTH: 'S',
-};
+export const DATA_SOURCE_DB = 'db';
+export const DATA_SOURCE_API = 'api';
+export const HEMISPHERE_NORTH = 'N';
+export const HEMISPHERE_SOUTH = 'S';

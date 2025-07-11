@@ -1,15 +1,34 @@
-jest.mock("../../services/user.service");
-
-const userController = require("../../controllers/user.controller");
-const userService = require("../../services/user.service");
-const {
-  DATA_SOURCE_DB,
-  DATA_SOURCE_API,
+import { jest } from '@jest/globals';
+import {
   HEMISPHERE_NORTH,
   HEMISPHERE_SOUTH,
-} = require("../../config/constants");
-const { mockUsers } = require("../../mocks/user");
-const geolocation = require("../../utils/geoLocation");
+  DATA_SOURCE_DB,
+  DATA_SOURCE_API,
+} from "../../config/constants.js";
+import { mockUsers } from "../../mocks/user.js";
+import { AppError } from "../../utils/error.js";
+
+const mockUserService = {
+  getAllUsers: jest.fn(),
+  getUserById: jest.fn(),
+  createUser: jest.fn(),
+  deleteUser: jest.fn(),
+  updateUser: jest.fn(),
+  searchForUser: jest.fn(),
+};
+
+jest.unstable_mockModule("../../services/user.service.js", () => ({
+  UserService: jest.fn(() => mockUserService),
+  ...mockUserService,
+}));
+
+const mockGeo = {
+  isSouthOrNorth: jest.fn(),
+};
+
+jest.unstable_mockModule("../../utils/geoLocation.js", () => mockGeo);
+
+let userController;
 
 const mockRes = () => {
   const res = {};
@@ -23,7 +42,9 @@ afterEach(() => {
   jest.clearAllMocks();
 });
 
-beforeEach(() => {
+beforeEach(async () => {
+  const { UserController }  = await import("../../controllers/user.controller.js");
+  userController = new UserController();
   jest.clearAllMocks();
 });
 
@@ -32,20 +53,20 @@ const mockNext = jest.fn();
 describe("userController.getAllUsers", () => {
   it("should return all users with status 200", async () => {
     const users = mockUsers;
-    userService.getAllUsers.mockResolvedValue(users);
+    mockUserService.getAllUsers.mockResolvedValue(users);
 
     const req = {};
     const res = mockRes();
 
     await userController.getAllUsers(req, res, mockNext);
 
-    expect(userService.getAllUsers).toHaveBeenCalled();
+    expect(mockUserService.getAllUsers).toHaveBeenCalled();
     expect(res.json).toHaveBeenCalledWith(users);
   });
 
   it("should handle errors with next()", async () => {
     const error = new Error("DB failed");
-    jest.spyOn(userService, "getAllUsers").mockRejectedValue(error);
+    jest.spyOn(mockUserService, "getAllUsers").mockRejectedValue(error);
 
     const req = {};
     const res = mockRes();
@@ -59,14 +80,14 @@ describe("userController.getAllUsers", () => {
 describe("userController.getUserById", () => {
   it("should return a user if found", async () => {
     const user = { id: 2, username: "Ana" };
-    userService.getUserById.mockResolvedValue(user);
+    mockUserService.getUserById.mockResolvedValue(user);
 
     const req = { params: { id: 2 } };
     const res = mockRes();
 
     await userController.getUserById(req, res, mockNext);
 
-    expect(userService.getUserById).toHaveBeenCalledWith(2);
+    expect(mockUserService.getUserById).toHaveBeenCalledWith(2);
     expect(res.json).toHaveBeenCalledWith(user);
   });
 
@@ -74,7 +95,7 @@ describe("userController.getUserById", () => {
     const req = { params: { id: "999" } };
     const res = { json: jest.fn() };
     const next = jest.fn();
-    jest.spyOn(userService, "getUserById").mockResolvedValue(null);
+    jest.spyOn(mockUserService, "getUserById").mockResolvedValue(null);
 
     await userController.getUserById(req, res, next);
 
@@ -88,7 +109,7 @@ describe("userController.getUserById", () => {
 
   it("should call next on error", async () => {
     const error = new Error("Service error");
-    userService.getUserById.mockRejectedValue(error);
+    mockUserService.getUserById.mockRejectedValue(error);
 
     const req = { params: { id: "5" } };
     const res = mockRes();
@@ -129,8 +150,10 @@ describe("userController.createUser", () => {
     const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
     const next = jest.fn();
 
+    const error = new AppError("Bad request, coordinates are invalid", 400);
+    
     // Mock the coordinate validation function to return false (invalid)
-    jest.spyOn(geolocation, "isSouthOrNorth").mockResolvedValue(false);
+    jest.spyOn(mockGeo, "isSouthOrNorth").mockRejectedValue(error);
 
     await userController.createUser(req, res, next);
 
@@ -157,10 +180,10 @@ describe("userController.createUser", () => {
     const next = jest.fn();
 
     // Mock the coordinate validation to return a valid hemisphere
-    jest.spyOn(geolocation, "isSouthOrNorth").mockResolvedValue(HEMISPHERE_NORTH);
+    jest.spyOn(mockGeo, "isSouthOrNorth").mockResolvedValue(HEMISPHERE_NORTH);
 
     // Mock the service method
-    jest.spyOn(userService, "createUser").mockResolvedValue();
+    jest.spyOn(mockUserService, "createUser").mockResolvedValue();
 
     await userController.createUser(req, res, next);
 
@@ -187,11 +210,11 @@ describe("userController.createUser", () => {
     const next = jest.fn();
 
     // Mock the coordinate validation to return a valid hemisphere
-    jest.spyOn(geolocation, "isSouthOrNorth").mockResolvedValue(false);
+    jest.spyOn(mockGeo, "isSouthOrNorth").mockResolvedValue(false);
 
     // Mock the service method to throw a UNIQUE constraint error
     jest
-      .spyOn(userService, "createUser")
+      .spyOn(mockUserService, "createUser")
       .mockRejectedValue(new Error("UNIQUE constraint failed: user.username"));
 
     await userController.createUser(req, res, next);
@@ -219,11 +242,11 @@ describe("userController.createUser", () => {
     const next = jest.fn();
 
     // Mock the coordinate validation to return a valid hemisphere
-    jest.spyOn(geolocation, "isSouthOrNorth").mockResolvedValue(HEMISPHERE_NORTH);
+    jest.spyOn(mockGeo, "isSouthOrNorth").mockResolvedValue(HEMISPHERE_NORTH);
 
     // Mock the service method to throw an unknown error
     jest
-      .spyOn(userService, "createUser")
+      .spyOn(mockUserService, "createUser")
       .mockRejectedValue(new Error("Some unknown error"));
 
     await userController.createUser(req, res, next);
@@ -243,9 +266,9 @@ describe("userController.deleteUser", () => {
     const user = { id: "1", username: "test" };
 
     jest
-      .spyOn(userService, "searchForUser")
+      .spyOn(mockUserService, "searchForUser")
       .mockResolvedValue({ user, source: DATA_SOURCE_DB });
-    const deleteSpy = jest.spyOn(userService, "deleteUser").mockResolvedValue();
+    const deleteSpy = jest.spyOn(mockUserService, "deleteUser").mockResolvedValue();
 
     await userController.deleteUser(req, res, next);
 
@@ -258,7 +281,7 @@ describe("userController.deleteUser", () => {
 
   it("should return 404 if user not found", async () => {
     const req = { params: { id: "99" } };
-    jest.spyOn(userService, "searchForUser").mockResolvedValue({ user: null });
+    jest.spyOn(mockUserService, "searchForUser").mockResolvedValue({ user: null });
 
     await userController.deleteUser(req, res, next);
 
@@ -273,7 +296,7 @@ describe("userController.deleteUser", () => {
   it("should handle unknown errors", async () => {
     const req = { params: { id: "1" } };
     jest
-      .spyOn(userService, "searchForUser")
+      .spyOn(mockUserService, "searchForUser")
       .mockRejectedValue(new Error("Unknown"));
 
     await userController.deleteUser(req, res, next);
@@ -294,12 +317,12 @@ describe("userController.updateUser", () => {
     const user = { id: "1", username: "test", latitude: 0, longitude: 0 };
 
     jest
-      .spyOn(userService, "searchForUser")
+      .spyOn(mockUserService, "searchForUser")
       .mockResolvedValue({ user, source: DATA_SOURCE_DB });
     jest
-      .spyOn(userService, "updateUser")
+      .spyOn(mockUserService, "updateUser")
       .mockResolvedValue({ id: "1", username: "updated" });
-    jest.spyOn(geolocation, "isSouthOrNorth").mockResolvedValue(HEMISPHERE_NORTH);
+    jest.spyOn(mockGeo, "isSouthOrNorth").mockResolvedValue(HEMISPHERE_NORTH);
 
     await userController.updateUser(req, res, next);
 
@@ -308,7 +331,7 @@ describe("userController.updateUser", () => {
 
   it("should return 404 if user not found", async () => {
     const req = { params: { id: "2" }, body: {} };
-    jest.spyOn(userService, "searchForUser").mockResolvedValue({ user: null });
+    jest.spyOn(mockUserService, "searchForUser").mockResolvedValue({ user: null });
 
     await userController.updateUser(req, res, next);
 
@@ -328,12 +351,12 @@ describe("userController.updateUser", () => {
     const user = { id: "1", username: "test", latitude: 0, longitude: 0 };
 
     jest
-      .spyOn(userService, "searchForUser")
+      .spyOn(mockUserService, "searchForUser")
       .mockResolvedValue({ user, source: DATA_SOURCE_DB });
     jest
-      .spyOn(userService, "updateUser")
+      .spyOn(mockUserService, "updateUser")
       .mockRejectedValue(new Error("UNIQUE constraint failed"));
-    jest.spyOn(geolocation, "isSouthOrNorth").mockResolvedValue(HEMISPHERE_NORTH);
+    jest.spyOn(mockGeo, "isSouthOrNorth").mockResolvedValue(HEMISPHERE_NORTH);
 
     await userController.updateUser(req, res, next);
 
@@ -348,7 +371,7 @@ describe("userController.updateUser", () => {
   it("should handle unknown errors", async () => {
     const req = { params: { id: "1" }, body: {} };
     jest
-      .spyOn(userService, "searchForUser")
+      .spyOn(mockUserService, "searchForUser")
       .mockRejectedValue(new Error("Unknown"));
 
     await userController.updateUser(req, res, next);

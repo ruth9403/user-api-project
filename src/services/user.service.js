@@ -1,47 +1,58 @@
-const dbService = require("./db.service");
-const apiService = require("./southernUsersApi.service");
-const {
-  HEMISPHERE_NORTH,
+import { DbService } from "./db.service.js";
+import { SouthernUsersApiService } from "./southernUsersApi.service.js";
+import { HEMISPHERE_NORTH,
   HEMISPHERE_SOUTH,
   DATA_SOURCE_DB,
-  DATA_SOURCE_API,
-} = require("../config/constants");
+  DATA_SOURCE_API,} from "../config/constants.js";
 
-module.exports = {
+export class UserService {
+  dbService;
+  apiService;
+
+  constructor() {
+    this.dbService = new DbService();
+    this.apiService = new SouthernUsersApiService();
+  }
+
   async searchForUser(id) {
     const [dbResult, apiResult] = await Promise.allSettled([
-        dbService.getUserById(id).then((user) => ({ user, source: DATA_SOURCE_DB })),
-        apiService.fetchSingleUser(id).then((user) => ({ user, source: DATA_SOURCE_API })),
-      ]);
-    
-      const validResult = [dbResult, apiResult]
-        .filter((r) => r.status === "fulfilled" && r.value.user)[0];
-    
-      if (!validResult) return { user: undefined };
-    
-      return validResult.value;
-  },
+      this.dbService
+        .getUserById(id)
+        .then((user) => ({ user, source: DATA_SOURCE_DB })),
+      this.apiService
+        .fetchSingleUser(id)
+        .then((user) => ({ user, source: DATA_SOURCE_API })),
+    ]);
+
+    const validResult = [dbResult, apiResult].filter(
+      (r) => r.status === "fulfilled" && r.value.user
+    )[0];
+
+    if (!validResult) return { user: undefined };
+
+    return validResult.value;
+  }
 
   async getAllUsers() {
     const [northernUsers, southernUsers] = await Promise.all([
-      dbService.getAllUsers(),
-      apiService.fetchAllUsers(),
+      this.dbService.getAllUsers(),
+      this.apiService.fetchAllUsers(),
     ]);
     return [...(northernUsers || []), ...(southernUsers || [])].sort(
       (a, b) => a.id - b.id
     );
-  },
+  }
 
   async getUserById(id) {
     const { user } = await this.searchForUser(id);
     return user;
-  },
+  }
 
   async createUser(userData, hemisphere) {
     return hemisphere === HEMISPHERE_NORTH
-      ? dbService.createUser(userData)
-      : apiService.insertUser(userData);
-  },
+      ? this.dbService.createUser(userData)
+      : this.apiService.insertUser(userData);
+  }
 
   async updateUser(id, userData, source, newHemisphere) {
     const needsMigration =
@@ -50,23 +61,23 @@ module.exports = {
 
     // Migrating user to correct hemmisphere
     let updatedUser;
-    const migrated = { id, ...userData }
+    const migrated = { id, ...userData };
     if (needsMigration) {
       if (newHemisphere === HEMISPHERE_NORTH) {
         // From API to DB
-        updatedUser = await dbService.createUser(migrated);
-        await apiService.deleteUser(id);
+        updatedUser = await this.dbService.createUser(migrated);
+        await this.apiService.deleteUser(id);
       } else {
         // From DB to API
-        updatedUser = await apiService.insertUser(migrated);
-        await dbService.deleteUser(id);
+        updatedUser = await this.apiService.insertUser(migrated);
+        await this.dbService.deleteUser(id);
       }
     } else if (source === DATA_SOURCE_DB) {
       // Continues in North, updating DB
-      updatedUser = await dbService.updateUser(id, userData);
+      updatedUser = await this.dbService.updateUser(id, userData);
     } else {
       // Continues in South, updating through API
-      updatedUser = await apiService.updateUser(id, userData);
+      updatedUser = await this.apiService.updateUser(id, userData);
     }
 
     return {
@@ -74,15 +85,15 @@ module.exports = {
       username: userData.username,
       email: userData.email,
     };
-  },
+  }
 
   async deleteUser(id, source) {
     if (source === DATA_SOURCE_DB) {
-      const deletedDb = await dbService.deleteUser(id);
+      const deletedDb = await this.dbService.deleteUser(id);
       return deletedDb;
-    }else {
-      const deletedAPI = await apiService.deleteUser(id);
-      return deletedAPI
+    } else {
+      const deletedAPI = await this.apiService.deleteUser(id);
+      return deletedAPI;
     }
-  },
-};
+  }
+}

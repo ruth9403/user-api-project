@@ -1,33 +1,42 @@
-const userService = require("../services/user.service");
-const { v4: uuidv4 } = require("uuid");
-const { isSouthOrNorth } = require("../utils/geoLocation");
-const bcrypt = require("bcrypt");
-const { AppError } = require('../utils/error')
+import { v4 as uuidv4 } from 'uuid';
+import bcrypt from "bcrypt";
 
-module.exports = {
-  helloWorld: (req, res) => res.send("Hello world!"),
+import { UserService } from "../services/user.service.js";
+import { isSouthOrNorth } from "../utils/geoLocation.js";
+import { AppError } from "../utils/error.js";
 
-  getAllUsers: async (req, res, next) => {
+export class UserController {
+  userService;
+
+  constructor() {
+    this.userService = new UserService();
+  }
+  
+  async helloWorld(req, res) {
+    res.send("Hello world!");
+  }
+
+  async getAllUsers(req, res, next) {
     try {
-      const users = await userService.getAllUsers();
+      const users = await this.userService.getAllUsers();
       // Header to indicate the total count
       res.set("X-Total-Count", users.length).json(users);
     } catch (e) {
       next(e);
     }
-  },
+  }
 
-  getUserById: async (req, res, next) => {
+  async getUserById(req, res, next) {
     try {
-      const user = await userService.getUserById(req.params.id);
-      if (!user) return next(new AppError('User not found', 404));
+      const user = await this.userService.getUserById(req.params.id);
+      if (!user) return next(new AppError("User not found", 404));
       res.json(user);
     } catch (e) {
       next(e);
     }
-  },
+  }
 
-  createUser: async (req, res, next) => {
+  async createUser(req, res, next) {
     try {
       const {
         body: {
@@ -37,12 +46,17 @@ module.exports = {
           latitude,
           longitude,
           browser_language,
-        }
+        },
       } = req;
 
       // Validating required fields
       if (!username || !email || !password || !latitude || !longitude) {
-        return next(new AppError('Bad request, one or more of the following fields are missing: username, email, password, latitude, longitude', 400))
+        return next(
+          new AppError(
+            "Bad request, one or more of the following fields are missing: username, email, password, latitude, longitude",
+            400
+          )
+        );
       }
 
       // Checking if coordinates are valid
@@ -62,8 +76,8 @@ module.exports = {
         longitude,
         browser_language,
       };
-      await userService.createUser(userData, hemisphere);
-      res.status(201).json({id, username, email});
+      await this.userService.createUser(userData, hemisphere);
+      res.status(201).json({ id, username, email });
     } catch (e) {
       if (e.message.includes("UNIQUE constraint failed")) {
         return next(new AppError("Username or email already exists", 409));
@@ -71,9 +85,9 @@ module.exports = {
 
       next(e);
     }
-  },
+  }
 
-  updateUser: async (req, res, next) => {
+  async updateUser(req, res, next) {
     try {
       const {
         params: { id },
@@ -81,14 +95,17 @@ module.exports = {
       } = req;
 
       // Searching for user
-      const { user, source } = await userService.searchForUser(id);
+      const { user, source } = await this.userService.searchForUser(id);
 
-      if (!user) return next(new AppError('User not found', 404));
-      
+      if (!user) return next(new AppError("User not found", 404));
+
       // Hashing new password if any
       const preparedUpdates = { ...body };
       if (preparedUpdates.password) {
-        preparedUpdates.password = await bcrypt.hash(preparedUpdates.password, 10);
+        preparedUpdates.password = await bcrypt.hash(
+          preparedUpdates.password,
+          10
+        );
       }
 
       // Check if hemisphere changed
@@ -96,26 +113,31 @@ module.exports = {
       const newLong = preparedUpdates.longitude ?? user.longitude;
       const newHemisphere = await isSouthOrNorth(newLat, newLong);
 
-      const result = await userService.updateUser(id, preparedUpdates, source, newHemisphere);
+      const result = await this.userService.updateUser(
+        id,
+        preparedUpdates,
+        source,
+        newHemisphere
+      );
       res.json(result);
     } catch (e) {
       if (e.message.includes("UNIQUE constraint failed")) {
         return next(new AppError("Username or email already exists", 409));
       }
 
-      next(e)
+      next(e);
     }
-  },
+  }
 
-  deleteUser: async (req, res, next) => {
+  async deleteUser(req, res, next) {
     try {
       // Searching for user
-      const { user, source } = await userService.searchForUser(req.params.id);
-      if (!user) return next(new AppError('User not found', 404));
-      await userService.deleteUser(req.params.id, source);
+      const { user, source } = await this.userService.searchForUser(req.params.id);
+      if (!user) return next(new AppError("User not found", 404));
+      await this.userService.deleteUser(req.params.id, source);
       res.json({ id: req.params.id, message: "User deleted successfully" });
     } catch (e) {
       next(e);
     }
-  },
-};
+  }
+}

@@ -1,5 +1,6 @@
-const { HEMISPHERE_NORTH, HEMISPHERE_SOUTH } = require('../../config/constants');
-const { isSouthOrNorth } = require('../../utils/geoLocation');
+import { HEMISPHERE_NORTH,
+  HEMISPHERE_SOUTH } from "../../config/constants.js";
+import { isSouthOrNorth } from "../../utils/geoLocation.js";
 
 describe('isSouthOrNorth', () => {
   it('should return HEMISPHERE_NORTH for positive latitude', async () => {

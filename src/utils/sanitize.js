@@ -1,9 +1,15 @@
-module.exports = {
-  async sanitizeBody(body = {}) {
-    const { password, ...rest } = body;
+export class Sanitize {
+  /**
+   * Sanitizes an object by removing sensitive fields.
+   * @param {Object} obj - The object to sanitize.
+   * @returns {Object} - The sanitized object.
+   */
+  
+  static sanitizeObject(obj = {}) {
+    const { password, ...rest } = obj;
     return {
       ...rest,
       ...(password && { password: "[REDACTED]" }),
     };
-  },
-};
+  }
+}

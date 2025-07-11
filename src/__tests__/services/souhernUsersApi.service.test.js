@@ -1,7 +1,14 @@
-const apiService = require('../../services/southernUsersApi.service');
-const { mockUsers } = require('../../mocks/user');
+import { jest } from '@jest/globals';
+import { SouthernUsersApiService } from "../../services/southernUsersApi.service";
+import { mockUsers } from "../../mocks/user";
 
 jest.useFakeTimers();
+
+let apiService;
+
+beforeEach(() => {
+  apiService = new SouthernUsersApiService();
+});
 
 afterEach(() => {
   jest.clearAllMocks();

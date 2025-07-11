@@ -1,14 +1,27 @@
-const express = require('express');
-const router = express.Router();
-const userController = require('../controllers/user.controller');
-const LoggingMiddleware = require('../middlewares/logging.middleware');
+import express from 'express';
+import { UserController } from '../controllers/user.controller.js';
+import { LoggingMiddleware } from '../middlewares/logging.middleware.js';
 
-// Routes
-//router.get('/', userController.helloWorld);
-router.get('/', LoggingMiddleware, userController.getAllUsers);
-router.get('/:id', LoggingMiddleware, userController.getUserById);
-router.post('/', LoggingMiddleware, userController.createUser);
-router.put('/:id', LoggingMiddleware, userController.updateUser);
-router.delete('/:id', LoggingMiddleware, userController.deleteUser);
+export class UserRouter {
+    router;
+    userController;
 
-module.exports = router;
+  constructor() {
+    console.log('Initializing UserRouter...');
+    this.router = express.Router();
+    this.userController = new UserController();
+    this.initializeRoutes();
+  }
+
+  initializeRoutes() {
+    this.router.get('/', LoggingMiddleware, async (req, res, next) => await this.userController.getAllUsers(req, res, next));
+    this.router.get('/:id', LoggingMiddleware, async (req, res, next) => await this.userController.getUserById(req, res, next));
+    this.router.post('/', LoggingMiddleware, async (req, res, next) => await this.userController.createUser(req, res, next));
+    this.router.put('/:id', LoggingMiddleware, async (req, res, next) => await this.userController.updateUser(req, res, next));
+    this.router.delete('/:id', LoggingMiddleware, async (req, res, next) => await this.userController.deleteUser(req, res, next));
+  }
+
+  getRouter() {
+    return this.router;
+  }
+}

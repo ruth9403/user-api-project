@@ -1,35 +1,42 @@
-jest.mock('../../../lib/db');
+import { jest } from '@jest/globals';
 
-const dbService = require('../../services/db.service');
-const db = require('../../../lib/db');
+const mockClient = {
+  all: jest.fn(),
+  get: jest.fn(),
+  run: jest.fn(),
+  close: jest.fn(),
+};
 
+// Mock del módulo entero
+await jest.unstable_mockModule('../../../lib/db.js', () => ({
+  SQLiteDb: class {
+    getClient = jest.fn().mockResolvedValue(mockClient);
+  },
+}));
 
-let mockClient;
-
-beforeEach(() => {
-  mockClient = {
-    all: jest.fn(),
-    get: jest.fn(),
-    run: jest.fn(),
-    close: jest.fn(),
-  };
-  db.getClient.mockResolvedValue(mockClient);
-});
+// Ahora importa después del mock
+const { DbService } = await import('../../services/db.service.js');
 
 afterEach(() => {
   jest.clearAllMocks();
 });
 
-describe('dbService', () => {
+describe('DbService', () => {
+
+  let dbService;
+
+  beforeEach(() => {
+    dbService = new DbService();
+    jest.clearAllMocks();
+  });
 
   describe('getAllUsers', () => {
     it('should return all users', async () => {
       const mockUsers = [{ id: 1 }, { id: 2 }];
       mockClient.all.mockResolvedValue(mockUsers);
-
+      
       const result = await dbService.getAllUsers();
 
-      expect(db.getClient).toHaveBeenCalled();
       expect(mockClient.all).toHaveBeenCalledWith("SELECT * FROM user");
       expect(mockClient.close).toHaveBeenCalled();
       expect(result).toEqual(mockUsers);
@@ -40,7 +47,6 @@ describe('dbService', () => {
     it('should return user by id', async () => {
       const mockUser = { id: 1 };
       mockClient.get.mockResolvedValue(mockUser);
-
       const result = await dbService.getUserById(1);
 
       expect(mockClient.get).toHaveBeenCalledWith("SELECT * FROM user WHERE id = ?", [1]);
@@ -80,7 +86,6 @@ describe('dbService', () => {
       const mockResult = { changes: 1 };
 
       mockClient.run.mockResolvedValue(mockResult);
-
       const result = await dbService.updateUser(id, userData);
 
       expect(mockClient.run).toHaveBeenCalledWith(

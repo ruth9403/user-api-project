@@ -3,10 +3,11 @@
 /**
  * Module dependencies.
  */
+console.log('Starting server...');
+import app from '../app.js'; // Adjust the path as necessary
+import http from 'http';
 
-var app = require('../app');
-var http = require('http');
-
+console.log('App and HTTP imported successfully');
 /**
  * Get port from environment and store in Express.
  */

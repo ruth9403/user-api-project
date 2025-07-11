@@ -1,6 +1,6 @@
-var createError = require('http-errors');
-var express = require('express');
-const userRouter = require('./src/routes/user.route');
+import createError from 'http-errors';
+import express from 'express';
+import { UserRouter } from './src/routes/user.route.js';
 
 var app = express();
 app.use(express.json());
@@ -10,6 +10,7 @@ app.use(express.urlencoded({ extended: false }));
 
 // Routes
 // app.use('/', indexRouter);
+const userRouter = new UserRouter().getRouter();
 app.use('/api/users', userRouter);
 
 // catch 404 and forward to error handler
@@ -33,4 +34,4 @@ app.use(function(err, req, res, next) {
   });
 });
 
-module.exports = app;
+export default app;
