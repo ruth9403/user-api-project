@@ -1,9 +1,7 @@
 import { jest } from '@jest/globals';
 import {
   HEMISPHERE_NORTH,
-  HEMISPHERE_SOUTH,
-  DATA_SOURCE_DB,
-  DATA_SOURCE_API,
+  DATA_SOURCE_DB
 } from "../../config/constants.js";
 import { mockUsers } from "../../mocks/user.js";
 import { AppError } from "../../utils/error.js";

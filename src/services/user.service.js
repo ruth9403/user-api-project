@@ -1,46 +1,49 @@
-import { DbService } from "./db.service.js";
-import { SouthernUsersApiService } from "./southernUsersApi.service.js";
-import { HEMISPHERE_NORTH,
+import {
+  HEMISPHERE_NORTH,
   HEMISPHERE_SOUTH,
   DATA_SOURCE_DB,
-  DATA_SOURCE_API,} from "../config/constants.js";
+  DATA_SOURCE_API,
+} from "../config/constants.js";
+import { isSouthOrNorth } from "../utils/geoLocation.js";
+
+
 
 export class UserService {
-  dbService;
-  apiService;
+  constructor(strategies) {
+    this.strategies = strategies;
+  }
 
-  constructor() {
-    this.dbService = new DbService();
-    this.apiService = new SouthernUsersApiService();
+  async getStorageStrategy(latitude, longitude) {
+    const hemisphere = await isSouthOrNorth(latitude, longitude);
+    const strategy = this.strategies[hemisphere];
+    if (!strategy) {
+      throw new Error(`No strategy found for hemisphere: ${hemisphere}`);
+    }
+    return strategy;
   }
 
   async searchForUser(id) {
-    const [dbResult, apiResult] = await Promise.allSettled([
-      this.dbService
-        .getUserById(id)
-        .then((user) => ({ user, source: DATA_SOURCE_DB })),
-      this.apiService
-        .fetchSingleUser(id)
-        .then((user) => ({ user, source: DATA_SOURCE_API })),
-    ]);
+    const results = await Promise.allSettled(
+      Object.entries(this.strategies).map(([hemisphere, strategy]) =>
+        strategy.getUserById(id).then((user) => ({ user, source: hemisphere }))
+      )
+    );
 
-    const validResult = [dbResult, apiResult].filter(
-      (r) => r.status === "fulfilled" && r.value.user
-    )[0];
+    const validResult = results
+      .filter((r) => r.status === "fulfilled" && r.value.user)
+      .map((r) => r.value)[0];
 
-    if (!validResult) return { user: undefined };
-
-    return validResult.value;
+    return validResult || { user: undefined };
   }
 
   async getAllUsers() {
-    const [northernUsers, southernUsers] = await Promise.all([
-      this.dbService.getAllUsers(),
-      this.apiService.fetchAllUsers(),
-    ]);
-    return [...(northernUsers || []), ...(southernUsers || [])].sort(
-      (a, b) => a.id - b.id
+    const allUsers = await Promise.all(
+      Object.values(this.strategies).map((strategy) => strategy.getAllUsers())
     );
+    return allUsers
+      .flat()
+      .filter((user) => user)
+      .sort((a, b) => a.id - b.id);
   }
 
   async getUserById(id) {
@@ -49,51 +52,43 @@ export class UserService {
   }
 
   async createUser(userData, hemisphere) {
-    return hemisphere === HEMISPHERE_NORTH
-      ? this.dbService.createUser(userData)
-      : this.apiService.insertUser(userData);
+    const strategy = this.strategies[hemisphere];
+    if (!strategy) {
+      throw new Error(`No strategy found for hemisphere: ${hemisphere}`);
+    }
+    return await strategy.createUser(userData);
   }
 
-  async updateUser(id, userData, source, newHemisphere) {
-    const needsMigration =
-      (source === DATA_SOURCE_DB && newHemisphere === HEMISPHERE_SOUTH) ||
-      (source === DATA_SOURCE_API && newHemisphere === HEMISPHERE_NORTH);
+ async updateUser(id, userData, source, newHemisphere) {
+    const currentStrategy = this.strategies[source];
+    const newStrategy = this.strategies[newHemisphere];
+    if (!currentStrategy || !newStrategy) {
+      throw new Error(`Invalid strategy for source: ${source} or hemisphere: ${newHemisphere}`);
+    }
 
-    // Migrating user to correct hemmisphere
+    const needsMigration = source !== newHemisphere;
     let updatedUser;
     const migrated = { id, ...userData };
     if (needsMigration) {
-      if (newHemisphere === HEMISPHERE_NORTH) {
-        // From API to DB
-        updatedUser = await this.dbService.createUser(migrated);
-        await this.apiService.deleteUser(id);
-      } else {
-        // From DB to API
-        updatedUser = await this.apiService.insertUser(migrated);
-        await this.dbService.deleteUser(id);
-      }
-    } else if (source === DATA_SOURCE_DB) {
-      // Continues in North, updating DB
-      updatedUser = await this.dbService.updateUser(id, userData);
+      updatedUser = await newStrategy.createUser(migrated);
+      await currentStrategy.deleteUser(id);
     } else {
-      // Continues in South, updating through API
-      updatedUser = await this.apiService.updateUser(id, userData);
+      updatedUser = await currentStrategy.updateUser(id, userData);
     }
 
     return {
-      id: id,
+      id,
       username: userData.username,
       email: userData.email,
     };
   }
 
   async deleteUser(id, source) {
-    if (source === DATA_SOURCE_DB) {
-      const deletedDb = await this.dbService.deleteUser(id);
-      return deletedDb;
-    } else {
-      const deletedAPI = await this.apiService.deleteUser(id);
-      return deletedAPI;
+    const strategy = this.strategies[source];
+    if (!strategy) {
+      throw new Error(`No strategy found for source: ${source}`);
     }
+    return await strategy.deleteUser(id);
   }
+
 }

@@ -2,14 +2,21 @@ import { v4 as uuidv4 } from 'uuid';
 import bcrypt from "bcrypt";
 
 import { UserService } from "../services/user.service.js";
-import { isSouthOrNorth } from "../utils/geoLocation.js";
 import { AppError } from "../utils/error.js";
+import { DbStorageStrategy } from "../services/userStrategies/dbStorageStrategy.js";
+import { ApiStorageStrategy } from "../services/userStrategies/apiStorageStrategy.js";
+
+import { HEMISPHERE_NORTH, HEMISPHERE_SOUTH } from "../config/constants.js";
 
 export class UserController {
   userService;
 
   constructor() {
-    this.userService = new UserService();
+    const strategies = {
+      [HEMISPHERE_NORTH]: new DbStorageStrategy(),
+      [HEMISPHERE_SOUTH]: new ApiStorageStrategy(),
+    };
+    this.userService = new UserService(strategies);
   }
   
   async helloWorld(req, res) {
@@ -59,9 +66,6 @@ export class UserController {
         );
       }
 
-      // Checking if coordinates are valid
-      const hemisphere = await isSouthOrNorth(latitude, longitude);
-
       // Hashing password
       const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -76,15 +80,19 @@ export class UserController {
         longitude,
         browser_language,
       };
-      await this.userService.createUser(userData, hemisphere);
+
+      // Get the appropriate strategy based on hemisphere
+      const strategy = await this.userService.getStorageStrategy(latitude, longitude);
+      await strategy.createUser(userData);
       res.status(201).json({ id, username, email });
     } catch (e) {
       if (e.message.includes("UNIQUE constraint failed")) {
         return next(new AppError("Username or email already exists", 409));
       }
-
       next(e);
     }
+
+      
   }
 
   async updateUser(req, res, next) {
@@ -111,14 +119,12 @@ export class UserController {
       // Check if hemisphere changed
       const newLat = preparedUpdates.latitude ?? user.latitude;
       const newLong = preparedUpdates.longitude ?? user.longitude;
-      const newHemisphere = await isSouthOrNorth(newLat, newLong);
-
-      const result = await this.userService.updateUser(
-        id,
-        preparedUpdates,
-        source,
-        newHemisphere
+      const newStrategy = await this.userService.getStorageStrategy(newLat, newLong);
+      const newHemisphere = Object.keys(this.userService.strategies).find(
+        (key) => this.userService.strategies[key] === newStrategy
       );
+
+      const result = await this.userService.updateUser(id, preparedUpdates, source, newHemisphere);
       res.json(result);
     } catch (e) {
       if (e.message.includes("UNIQUE constraint failed")) {
